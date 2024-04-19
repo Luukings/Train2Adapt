@@ -18,7 +18,7 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
     descrCor       <- cor(data%>%select(where(is.numeric),-target),use = 'complete.obs')
     # descrCor       <- descrCor[rowSums(is.na(descrCor)) == 1,]
     highlyCorDescr <- findCorrelation(descrCor, cutoff = .7)
-    names          <- colnames(data%>%select(where(is.numeric)))[-highlyCorDescr]
+    names          <- colnames(data%>%select(where(is.numeric)))[-(highlyCorDescr+1)]
     data           <- data[,names]
     data[target]   <- data_tmp
   } 
