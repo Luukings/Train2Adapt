@@ -33,37 +33,89 @@ library(RANN)
 # Load helper scripts
 # ------------------------------------------------------ 
 
-source('L:/basic/Personal Archive/L/lvos2/VU/ML paper/Final folder/ML modelling/perform_ml_modelling.R')
-source('L:/basic/Personal Archive/L/lvos2/VU/ML paper/Final folder/ML modelling/eval_ml_modelling.R')
+source('ML modelling/perform_ml_modelling.R')
+source('ML modelling/eval_ml_modelling.R')
 
 # ------------------------------------------------------
 # Data loading
 # ------------------------------------------------------  
 
-setwd("L:/basic/Personal Archive/L/lvos2/VU/ML paper/Final folder/Get ML dataframe") # set wd where data is stored
+setwd("Get ML dataframe") # set wd where data is stored
 
-load('Pre_dataframe.RData') # load pre intervention dataframe
-# load('Post_dataframe.RData') # load post intervention dataframe
-# load('diff_dataframe.RData')
+# Select model target
+predict_target <- 'post'
 
-data          <- ML_dataframe
-# data$TT_power <- data$TT_power/data$weight # normalize power to bodyweight
+# Load relevant dataframe correspoding to target
+if (predict_target == 'pre') {
+  
+  load('Pre_dataframe.RData') # load pre intervention dataframe
+  ML_dataframe <- ML_dataframe %>% select(-Groep)
+  
+} else if (predict_target == 'post') {
+  
+  # load('diff_dataframe.RData')
+  # ML_add <- ML_dataframe %>% select(code,contains('_diff'))
+  load('Post_dataframe.RData') # load post intervention dataframe
+  # ML_dataframe <- ML_dataframe %>% left_join(ML_add, by='code')
+  
+} else if (predict_target == 'delta') {
+  
+  load('diff_dataframe.RData')
 
-target  <- 'TT_power' # select target for modelling
-formula <- as.formula(paste0(target,'~.')) # create formula for modelling
+}
 
 # ------------------------------------------------------
 # Data pre-processing 
 # ------------------------------------------------------   
 
-data  <- dummy_cols(data,select_columns='Groep',remove_first_dummy = T,remove_selected_columns = T) # create dummy cols based on 'Groep' column
+# Add some preprocessing
+data          <- ML_dataframe  %>% 
+                 select(-contains('cycle_1'),-contains('cycle_2'),-contains('cycle_3'),-contains('missing_days')) %>%
+                 rename_at(.vars = vars(ends_with("_cycle_all")),
+                           .funs = ~gsub("_cycle_all$", "", .)) %>% 
+                 rename_at(.vars = vars(ends_with("_percentile")),
+                           .funs = ~gsub("_percentile$", "p", .)) %>% 
+                 rename_at(.vars = vars(any_of(c("Training_data","Daily questionare","Weekly questionare","Training log"))),
+                           .funs = ~paste0('compl_',.)) %>%
+                 rename(sex = gender) %>%
+                 mutate(sex = ifelse(sex==0,'female','male'))
+data  <- dummy_cols(data,select_columns='sex',remove_first_dummy = T,remove_selected_columns = T) # create dummy cols based on 'Groep' column
+
+#data <- left_join(data, ML_dataframe %>% select(code, contains('_diff')), by=c('code'))
+
+# Perform normalization to body weight for pre and post predictions
+if (predict_target %in% c('pre','post')) {
+  
+data$TT_power <- data$TT_power/data$weight # normalize power to bodyweight
+
+}
+
+# Remove participants without time trial performance
+data <- data %>% filter(!is.na(TT_power))
+# data <- data %>% mutate_at(.vars = vars(contains('VO2'),contains('power')),
+#                            .funs = list(~./weight))
+
+# Set prediction formula
+target  <- 'TT_power' # select target for modelling
+formula <- as.formula(paste0(target,'~.')) # create formula for modelling
+
+# Perform dummification for training intervention groups
+if ('Groep' %in% colnames(data)){
+  data <- data %>%  rename(training_group = Groep) 
+  data  <- dummy_cols(data,select_columns='training_group',remove_first_dummy = T,remove_selected_columns = T) # create dummy cols based on 'Groep' column
+}
+
 # data  <- data %>% drop_na() # drop rows with missing values
 # ------------------------------------------------------
 # Data partitioning
 # ------------------------------------------------------   
 
-# Data partitioning: split data into train and holdout test set
-set.seed(123)
+# Data partitioning: split data into train set and holdout test set
+if (predict_target %in% c('pre','post')) {
+  set.seed(123)
+} else {
+  set.seed(321)   # to obtain similar train-test distribution
+}
 # set.seed(321)
 trainIndex      <- createDataPartition(data$TT_power, times=1, p = .65, list=F)
 data_train      <- data[trainIndex,]
@@ -91,7 +143,7 @@ data%>%ggplot(aes(split,TT_power,fill=split))+
 
 # remove split and code features from data
 data <- data%>%select(-split,-code)
-data_train <- data_train%>%select(-code,-daily_sick_cycle_2)
+data_train <- data_train%>%select(-code) #daily_sick_cycle_2
 
 # data<- data%>%select(-mean_Fascicle_length,-mean_Pennation_Angle,-Mean_Lm1,-Volume,-max_ACSA)
 
@@ -99,74 +151,153 @@ data_train <- data_train%>%select(-code,-daily_sick_cycle_2)
 # Modelling  
 # ------------------------------------------------------ 
 
-# perform modelling.
-model_glm_no_hpt_no_filt_no_cv   <- perform_ml_modelling(data_train,target,'glm',filtering ='no',HPT='no',CV = 'no') 
-model_glm_no_hpt_filt_no_cv      <- perform_ml_modelling(data_train,target,'glm',filtering ='yes',HPT='no',CV = 'no')
-model_glm_no_hpt_filt_cv         <- perform_ml_modelling(data_train,target,'glm',filtering ='yes',HPT='no',CV = 'yes')
-model_glm_hpt_no_filt_cv         <- perform_ml_modelling(data_train,target,'glm',filtering ='no',HPT='yes',CV = 'yes')
-model_glm_hpt_filt_cv            <- perform_ml_modelling(data_train,target,'glm',filtering ='yes',HPT='yes',CV = 'yes')
+# perform modelling (for three types of algorithm either with/without hyperparameter tuning and with/without prior filtering based on multicollinearity).
+model_glm_no_hpt_no_filt       <- perform_ml_modelling(data_train,target,'glm',filtering ='no', HPT='no',CV = 'no') 
+model_glm_hpt_no_filt          <- perform_ml_modelling(data_train,target,'glm',filtering ='no', HPT='yes',CV = 'yes')
+model_glm_hpt_filt             <- perform_ml_modelling(data_train,target,'glm',filtering ='yes',HPT='yes',CV = 'yes')
 
-model_rf_no_hpt_no_filt_no_cv    <- perform_ml_modelling(data_train,target,'rf',filtering ='no',HPT='no',CV = 'no')
-model_rf_no_hpt_filt_no_cv       <- perform_ml_modelling(data_train,target,'rf',filtering ='yes',HPT='no',CV = 'no')
-model_rf_no_hpt_filt_cv          <- perform_ml_modelling(data_train,target,'rf',filtering ='yes',HPT='no',CV = 'yes')
-model_rf_hpt_no_filt_cv          <- perform_ml_modelling(data_train,target,'rf',filtering ='no',HPT='yes',CV = 'yes')
-model_rf_hpt_filt_cv             <- perform_ml_modelling(data_train,target,'rf',filtering ='yes',HPT='yes',CV = 'yes')
+model_rf_no_hpt_no_filt        <- perform_ml_modelling(data_train,target,'rf',filtering ='no', HPT='no',CV = 'no')
+model_rf_hpt_no_filt           <- perform_ml_modelling(data_train,target,'rf',filtering ='no', HPT='yes',CV = 'yes')
+model_rf_hpt_filt              <- perform_ml_modelling(data_train,target,'rf',filtering ='yes',HPT='yes',CV = 'yes')
 
-model_svm_no_hpt_no_filt_no_cv   <- perform_ml_modelling(data_train,target,'svm',filtering ='no',HPT='no',CV = 'no')
-model_svm_no_hpt_filt_no_cv      <- perform_ml_modelling(data_train,target,'svm',filtering ='yes',HPT='no',CV = 'no')
-model_svm_no_hpt_filt_cv         <- perform_ml_modelling(data_train,target,'svm',filtering ='yes',HPT='no',CV = 'yes')
-model_svm_hpt_no_filt_cv         <- perform_ml_modelling(data_train,target,'svm',filtering ='no',HPT='yes',CV = 'yes')
-model_svm_hpt_filt_cv            <- perform_ml_modelling(data_train,target,'svm',filtering ='yes',HPT='yes',CV = 'yes')
+model_pcr_no_hpt_no_filt       <- perform_ml_modelling(data_train,target,'pcr',filtering ='no',HPT='no',CV = 'no')
+model_pcr_hpt_no_filt          <- perform_ml_modelling(data_train,target,'pcr',filtering ='no',HPT='yes',CV = 'yes')
+model_pcr_hpt_filt             <- perform_ml_modelling(data_train,target,'pcr',filtering ='yes',HPT='yes',CV = 'yes')
 
-# Evaluate machine learning models based on RMSE and show plots of measured vs predicted values
+# Evaluate machine learning models based on MAE and show plots of measured vs predicted values
+# Model performance on train set
+results_glm <- rbind('model_glm_no_hpt_no_filt' = eval_ml_modelling(model_glm_no_hpt_no_filt,data_train,target,plot = FALSE),
+                     'model_glm_hpt_no_filt'    = eval_ml_modelling(model_glm_hpt_no_filt,data_train,target,plot = FALSE),
+                     'model_glm_hpt_filt'       = eval_ml_modelling(model_glm_hpt_filt,data_train,target,plot = FALSE))
 
-results_glm <- rbind('model_glm_no_hpt_no_filt_no_cv' = eval_ml_modelling(model_glm_no_hpt_no_filt_no_cv,data_train,target,plot = TRUE),
-                     'model_glm_no_hpt_filt_no_cv' = eval_ml_modelling(model_glm_no_hpt_filt_no_cv,data_train,target,plot = TRUE),
-                     'model_glm_no_hpt_filt_cv' = eval_ml_modelling(model_glm_no_hpt_filt_cv,data_train,target,plot = TRUE),
-                     'model_glm_hpt_no_filt_cv' = eval_ml_modelling(model_glm_hpt_no_filt_cv,data_train,target,plot = TRUE),
-                     'model_glm_hpt_filt_cv' = eval_ml_modelling(model_glm_hpt_filt_cv,data_train,target,plot = TRUE))
+results_rf <- rbind('model_rf_no_hpt_no_filt'   = eval_ml_modelling(model_rf_no_hpt_no_filt,data_train,target,plot = FALSE),
+                     'model_rf_hpt_no_filt'     = eval_ml_modelling(model_rf_hpt_no_filt,data_train,target,plot = FALSE),
+                     'model_rf_hpt_filt'        = eval_ml_modelling(model_rf_hpt_filt,data_train,target,plot = FALSE))
 
-results_rf <- rbind('model_rf_no_hpt_no_filt_no_cv' = eval_ml_modelling(model_rf_no_hpt_no_filt_no_cv,data_train,target,plot = TRUE),
-                     'model_rf_no_hpt_filt_no_cv' = eval_ml_modelling(model_rf_no_hpt_filt_no_cv,data_train,target,plot = TRUE),
-                     'model_rf_no_hpt_filt_cv' = eval_ml_modelling(model_rf_no_hpt_filt_cv,data_train,target,plot = TRUE),
-                     'model_rf_hpt_no_filt_cv' = eval_ml_modelling(model_rf_hpt_no_filt_cv,data_train,target,plot = TRUE),
-                     'model_rf_hpt_filt_cv' = eval_ml_modelling(model_rf_hpt_filt_cv,data_train,target,plot = TRUE))
+results_pcr <- rbind('model_pcr_no_hpt_no_filt' = eval_ml_modelling(model_pcr_no_hpt_no_filt,data_train,target,plot = FALSE),
+                     'model_pcr_hpt_no_filt'    = eval_ml_modelling(model_pcr_hpt_no_filt,data_train,target,plot = FALSE),
+                     'model_pcr_hpt_filt'       = eval_ml_modelling(model_pcr_hpt_filt,data_train,target,plot = FALSE))
 
-results_svm <- rbind('model_svm_no_hpt_no_filt_no_cv' = eval_ml_modelling(model_svm_no_hpt_no_filt_no_cv,data_train,target,plot = TRUE),
-                     'model_svm_no_hpt_filt_no_cv' = eval_ml_modelling(model_svm_no_hpt_filt_no_cv,data_train,target,plot = TRUE),
-                     'model_svm_no_hpt_filt_cv' = eval_ml_modelling(model_svm_no_hpt_filt_cv,data_train,target,plot = TRUE),
-                     'model_svm_hpt_no_filt_cv' = eval_ml_modelling(model_svm_hpt_no_filt_cv,data_train,target,plot = TRUE),
-                     'model_svm_hpt_filt_cv' = eval_ml_modelling(model_svm_hpt_filt_cv,data_train,target,plot = TRUE))
+# Model performance on test set
+testresults_glm <- rbind('model_glm_no_hpt_no_filt'= eval_ml_modelling(model_glm_no_hpt_no_filt,data_test,target,plot = FALSE),
+                     'model_glm_hpt_no_filt'       = eval_ml_modelling(model_glm_hpt_no_filt,data_test,target,plot = FALSE),
+                     'model_glm_hpt_filt'          = eval_ml_modelling(model_glm_hpt_filt,data_test,target,plot = FALSE))
+
+testresults_rf <- rbind('model_rf_no_hpt_no_filt'  = eval_ml_modelling(model_rf_no_hpt_no_filt,data_test,target,plot = FALSE),
+                    'model_rf_hpt_no_filt'         = eval_ml_modelling(model_rf_hpt_no_filt,data_test,target,plot = FALSE),
+                    'model_rf_hpt_filt'            = eval_ml_modelling(model_rf_hpt_filt,data_test,target,plot = FALSE))
+
+testresults_pcr <- rbind('model_pcr_no_hpt_no_filt'= eval_ml_modelling(model_pcr_no_hpt_no_filt,data_test,target,plot = FALSE),
+                     'model_pcr_hpt_no_filt'       = eval_ml_modelling(model_pcr_hpt_no_filt,data_test,target,plot = FALSE),
+                     'model_pcr_hpt_filt'          = eval_ml_modelling(model_pcr_hpt_filt,data_test,target,plot = FALSE))
 
 
-# organise training results to plot as table
-results_train <- rbind(results_glm,results_rf,results_svm)
-results_train <- as.data.frame(results_train) %>% rownames_to_column()
+# Organise model performance results to plot as table
+results_modelling <- cbind(rbind(results_glm,results_rf,results_pcr),
+                           rbind(testresults_glm,testresults_rf,testresults_pcr))
+results_modelling <- as.data.frame(results_modelling) #
+colnames(results_modelling) <- c(paste0('train_',c("RMSE","R2","MAE")),paste0('test_',c("RMSE","R2","MAE")))
 
-table_train<-tableGrob(results_train)
-grid.arrange(table_train)
+results_modelling <- results_modelling %>% mutate_all(~round(.,3)) %>% rownames_to_column() %>%
+                     mutate(algorithm = gsub('_','',substr(rowname,7,10)),
+                            tuning = ifelse(str_detect(rowname,'no_hpt'),'','x'),
+                            filter = ifelse(str_detect(rowname,'no_filt'),'','x')) %>% 
+                     mutate(algorithm = ifelse(str_detect(algorithm,'rf'),'rf',algorithm)) 
 
-best_model_train <- results_train%>%arrange(RMSE)%>%first()
+table_models <-tableGrob(results_modelling %>%
+                         select(algorithm,tuning,filter,contains('train_'),contains('test_')) %>%
+                         select(-contains('RMSE')))
+grid.arrange(table_models)
 
-# organise test results to plot as table
-results_test <- rbind( 'results' = eval_ml_modelling(eval(as.name(best_model_train$rowname)),data_test,target,plot = TRUE))
-results_test <- as.data.frame(results_test) %>% rownames_to_column()
-results_test$rowname[1] <-  paste0('results_test_',best_model_train$rowname)
-table_test<-tableGrob(results_test)
-grid.arrange(table_test)
+best_model_train <- results_modelling %>% arrange(train_MAE) %>% first()
 
-imp <- varImp(eval(as.name(best_model_train$rowname)),scale=F, nonpara = T)
-# imp <- varImp(model_glm_no_hpt_filt,scale=FALSE)
-plot(imp,top=10)
+# --- Summarise model results -----
+if (predict_target == 'pre') {
+  
+  results_pre<- rbind(results_modelling)
+  results_pre  <- results_pre  %>% mutate(target = 'pre')
+  # save(results_pre,file = 'results_pre.Rdata')
+  
+} else if (predict_target == 'post') {
+  
+  results_post<- rbind(results_train)
+  results_post <- results_post %>% mutate(target = 'post')
+  # save(results_post,file = 'results_post.Rdata')
+  
+} else if (predict_target == 'delta') {
+  
+  results_diff<- rbind(results_train)
+  results_diff <- results_diff %>% mutate(target = 'diff')
+  #save(results_diff,file = 'results_diff.Rdata')
+  
+}
 
-# results_pre<- rbind(results_train,results_test)
-# save(results_pre,file = 'results_pre.Rdata')
+# Analyse all results
+results_all  <- rbind(results_pre, results_post, results_diff)
+results_all  <- results_all %>% mutate_at(.vars = vars(any_of(c('filter','tuning'))),
+                                          .funs = ~ifelse(.=='x',1,0)) %>%
+                mutate(train_test_diff_R2  = train_R2 - test_R2,
+                       train_test_diff_MAE = train_MAE - test_MAE)
 
-# results_post<- rbind(results_train,results_test)
-# save(results_post,file = 'results_post.Rdata')
+# --- Plot feature importance -----
+
+# imp <- varImp(eval(as.name(best_model_train$rowname)),scale=F, nonpara = T)
+# plot(imp,top=30)
+
+# Fit final model
+myControl  <- trainControl(method = "none",verboseIter = F)
+model_glm <- train(formula,
+                   data,
+                   preProcess = c('center','scale','medianImpute'),
+                   method = "glmnet",
+                   trControl = myControl,
+                   tuneGrid = eval(as.name(best_model_train$rowname))$bestTune,
+                   importance = 'permutation',
+                   na.action = na.pass,
+                   metric = 'RMSE')
+imp <- varImp(model_glm,scale=F, nonpara = T)
+plot(imp,top=30)
+
+
+
+
+
+# results_test <- rbind( 'results' = eval_ml_modelling(model_rf_no_hpt_no_filt_no_cv,data_test,target,plot = TRUE))
+
+# results_glm <- rbind('model_glm_no_hpt_no_filt_no_cv' = eval_ml_modelling(model_glm_no_hpt_no_filt_no_cv,data_train,target,plot = FALSE),
+#                      'model_glm_no_hpt_filt_no_cv'    = eval_ml_modelling(model_glm_no_hpt_filt_no_cv,data_train,target,plot = FALSE),
+#                      'model_glm_no_hpt_filt_cv'       = eval_ml_modelling(model_glm_no_hpt_filt_cv,data_train,target,plot = FALSE),
+#                      'model_glm_hpt_no_filt_cv'       = eval_ml_modelling(model_glm_hpt_no_filt_cv,data_train,target,plot = FALSE),
+#                      'model_glm_hpt_filt_cv'          = eval_ml_modelling(model_glm_hpt_filt_cv,data_train,target,plot = FALSE))
 # 
-results_diff<- rbind(results_train,results_test)
-save(results_diff,file = 'results_diff.Rdata')
-
-
-results_test <- rbind( 'results' = eval_ml_modelling(model_rf_no_hpt_no_filt_no_cv,data_test,target,plot = TRUE))
+# results_rf <- rbind('model_rf_no_hpt_no_filt_no_cv'  = eval_ml_modelling(model_rf_no_hpt_no_filt_no_cv,data_train,target,plot = FALSE),
+#                     'model_rf_no_hpt_filt_no_cv'    = eval_ml_modelling(model_rf_no_hpt_filt_no_cv,data_train,target,plot = FALSE),
+#                     'model_rf_no_hpt_filt_cv'       = eval_ml_modelling(model_rf_no_hpt_filt_cv,data_train,target,plot = FALSE),
+#                     'model_rf_hpt_no_filt_cv'       = eval_ml_modelling(model_rf_hpt_no_filt_cv,data_train,target,plot = FALSE),
+#                     'model_rf_hpt_filt_cv'          = eval_ml_modelling(model_rf_hpt_filt_cv,data_train,target,plot = FALSE))
+# 
+# results_pcr <- rbind('model_pcr_no_hpt_no_filt_no_cv' = eval_ml_modelling(model_pcr_no_hpt_no_filt_no_cv,data_train,target,plot = FALSE),
+#                      'model_pcr_no_hpt_filt_no_cv'    = eval_ml_modelling(model_pcr_no_hpt_filt_no_cv,data_train,target,plot = FALSE),
+#                      'model_pcr_no_hpt_filt_cv'       = eval_ml_modelling(model_pcr_no_hpt_filt_cv,data_train,target,plot = FALSE),
+#                      'model_pcr_hpt_no_filt_cv'       = eval_ml_modelling(model_pcr_hpt_no_filt_cv,data_train,target,plot = FALSE),
+#                      'model_pcr_hpt_filt_cv'          = eval_ml_modelling(model_pcr_hpt_filt_cv,data_train,target,plot = FALSE))
+# 
+# testresults_glm <- rbind('model_glm_no_hpt_no_filt_no_cv' = eval_ml_modelling(model_glm_no_hpt_no_filt_no_cv,data_test,target,plot = FALSE),
+#                          'model_glm_no_hpt_filt_no_cv'    = eval_ml_modelling(model_glm_no_hpt_filt_no_cv,data_test,target,plot = FALSE),
+#                          'model_glm_no_hpt_filt_cv'       = eval_ml_modelling(model_glm_no_hpt_filt_cv,data_test,target,plot = FALSE),
+#                          'model_glm_hpt_no_filt_cv'       = eval_ml_modelling(model_glm_hpt_no_filt_cv,data_test,target,plot = FALSE),
+#                          'model_glm_hpt_filt_cv'          = eval_ml_modelling(model_glm_hpt_filt_cv,data_test,target,plot = FALSE))
+# 
+# testresults_rf <- rbind('model_rf_no_hpt_no_filt_no_cv'  = eval_ml_modelling(model_rf_no_hpt_no_filt_no_cv,data_test,target,plot = FALSE),
+#                         'model_rf_no_hpt_filt_no_cv'    = eval_ml_modelling(model_rf_no_hpt_filt_no_cv,data_test,target,plot = FALSE),
+#                         'model_rf_no_hpt_filt_cv'       = eval_ml_modelling(model_rf_no_hpt_filt_cv,data_test,target,plot = FALSE),
+#                         'model_rf_hpt_no_filt_cv'       = eval_ml_modelling(model_rf_hpt_no_filt_cv,data_test,target,plot = FALSE),
+#                         'model_rf_hpt_filt_cv'          = eval_ml_modelling(model_rf_hpt_filt_cv,data_test,target,plot = FALSE))
+# 
+# testresults_pcr <- rbind('model_pcr_no_hpt_no_filt_no_cv' = eval_ml_modelling(model_pcr_no_hpt_no_filt_no_cv,data_test,target,plot = FALSE),
+#                          'model_pcr_no_hpt_filt_no_cv'    = eval_ml_modelling(model_pcr_no_hpt_filt_no_cv,data_test,target,plot = FALSE),
+#                          'model_pcr_no_hpt_filt_cv'       = eval_ml_modelling(model_pcr_no_hpt_filt_cv,data_test,target,plot = FALSE),
+#                          'model_pcr_hpt_no_filt_cv'       = eval_ml_modelling(model_pcr_hpt_no_filt_cv,data_test,target,plot = FALSE),
+#                          'model_pcr_hpt_filt_cv'          = eval_ml_modelling(model_pcr_hpt_filt_cv,data_test,target,plot = FALSE))
+# 
+# 
