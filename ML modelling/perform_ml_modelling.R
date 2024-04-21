@@ -1,4 +1,4 @@
-perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
+perform_ml_modelling <- function(data, target, type, filtering, HPT, CV) {
   
   # Input:   train data set, target value for models, type of algorithm: rf, glmnet, svm , 
   #          perform filtering y/n, perform HPT y/n 
@@ -21,6 +21,7 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
     names          <- colnames(data%>%select(where(is.numeric)))[-(highlyCorDescr+1)]
     data           <- data[,names]
     data[target]   <- data_tmp
+    
   } 
   if ( CV == 'yes'){
     myControl  <- trainControl(method = "LOOCV",verboseIter = F)
@@ -47,7 +48,7 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
       # Perform HPT
       model_glm <- train(formula,
                          data,
-                         preProcess = c('center','scale','medianImpute'),
+                         preProcess = preprocessing,
                          method = "glmnet",
                          trControl = myControl,
                          # tuneGrid = Grid_glm,
@@ -56,68 +57,41 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
                          na.action = na.pass,
                          metric = 'RMSE')
       
-      # myControl  <- trainControl(method = "none",verboseIter = F)
-      # 
-      # # Fit final model
-      # model_glm <- train(formula,
-      #                    data,
-      #                    preProcess = c('center','scale','medianImpute'),
-      #                    method = "glmnet",
-      #                    trControl = myControl,
-      #                    tuneGrid = model_glm$bestTune,
-      #                    importance = 'permutation',
-      #                    na.action = na.pass,
-      #                    metric = 'RMSE')
       return(model_glm)
-    }
-    
-    if (type == 'rf'){
+      
+    } else if (type == 'rf'){
       
       # 2. Random Forest 
       
       # Define grid for HPT 
       
-      if(ncol(data>60)){
-        Grid_rf  <- expand.grid(mtry = seq(1,ncol(data)-1,10), # check general approach
-                                splitrule = c('variance', 'extratrees'),
-                                min.node.size = c(1,3,5,7,9))
-      } else{
+      # if(ncol(data>60)){
+      #   Grid_rf  <- expand.grid(mtry = seq(1,ncol(data)-1,10), # check general approach
+      #                           splitrule = c('variance', 'extratrees'),
+      #                           min.node.size = c(1,3,5,7,9))
+      # } else{
         
-        Grid_rf  <- expand.grid(mtry = seq(1,ncol(data)-1,1),
+        Grid_rf  <- expand.grid(mtry = seq(1,8,1),
                                 splitrule = c('variance', 'extratrees'),
                                 min.node.size = c(1,3,5,7,9))
-      }
-      
-      
+      # }
       
       # Perform HPT
       model_rf <- train(formula,
                          data,
-                         preProcess = c('center','scale','medianImpute'),
+                         preProcess = preprocessing,
                          method = "ranger",
                          trControl = myControl,
-                         # tuneGrid = Grid_rf,
+                         #tuneGrid = Grid_rf,
                          tuneLength = 10,
                          importance = 'permutation',
                          na.action = na.pass,
                          metric = 'RMSE')
       
-      # myControl  <- trainControl(method = "none",verboseIter = F)
-      
-      # # Fit final model
-      # model_rf <- train(formula,
-      #                    data,
-      #                    preProcess = c('center','scale','medianImpute'),
-      #                    method = "ranger",
-      #                    trControl = myControl,
-      #                    tuneGrid = model_rf$bestTune,
-      #                    importance = 'permutation',
-      #                    na.action = na.pass,
-      #                    metric = 'RMSE')
       return(model_rf)
-    }
-    
-    if (type == 'svm'){
+      
+    } else if (type == 'svm'){
+      
       # 3. SVM
       
       # Define grid for HPT
@@ -127,30 +101,39 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
       # Perform HPT
       model_svm <- train(formula,
                         data,
-                        preProcess = c('center','scale','medianImpute'),
+                        preProcess = preprocessing,
                         method = 'svmRadialSigma',
                         trControl = myControl,
-                        # tuneGrid = Grid_svm,
+                        #tuneGrid = Grid_svm,
                         tuneLength = 10,
                         importance = 'permutation',
                         na.action = na.pass,
                         metric = 'RMSE')
-      
-      # myControl  <- trainControl(method = "none",verboseIter = F)
-      # 
-      # # Fit final model
-      # model_svm <- train(formula,
-      #                   data,
-      #                   preProcess = c('center','scale','medianImpute'),
-      #                   method = 'svmRadialSigma',
-      #                   trControl = myControl,
-      #                   tuneGrid = model_svm$bestTune,
-      #                   importance = 'permutation',
-      #                   na.action = na.pass,
-      #                   metric = 'RMSE')
-      
+
       return(model_svm)
-    }
+
+    } else if (type == 'pcr'){
+    
+    # 3. Principle component regression
+    
+    # Define grid for HPT
+    Grid_pcr  <- expand.grid(ncomp = seq(1:10))
+    
+    # Perform HPT
+    model_pcr <- train(formula,
+                       data,
+                       preProcess = preprocessing,
+                       method = 'pcr',
+                       trControl = myControl,
+                       #tuneGrid = Grid_pcr,
+                       tuneLength = 10,
+                       importance = 'permutation',
+                       na.action = na.pass,
+                       metric = 'RMSE')
+    
+    return(model_pcr)
+  }
+    
   }
   
   if (type == 'glm' & HPT == 'no'){
@@ -162,7 +145,7 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
     # Fit final model
     model_glm <- train(formula,
                        data,
-                       preProcess = c('center','scale','medianImpute'),
+                       preProcess = preprocessing,
                        method = "glmnet",
                        trControl = myControl,
                        importance = 'permutation',
@@ -180,7 +163,7 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
     # Fit final model
     model_rf <- train(formula,
                       data,
-                      preProcess = c('center','scale','medianImpute'),
+                      preProcess = preprocessing,
                       method = "ranger",
                       trControl = myControl,
                       importance = 'permutation',
@@ -192,12 +175,10 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
   if (type == 'svm'& HPT == 'no'){
     # 3. SVM
 
-    # myControl  <- trainControl(method = "none",verboseIter = F)
-    
     # Fit final model
     model_svm <- train(formula,
                        data,
-                       preProcess = c('center','scale','medianImpute'),
+                       preProcess = preprocessing,
                        method = 'svmRadialSigma',
                        trControl = myControl,
                        importance = 'permutation',
@@ -207,5 +188,25 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT,CV) {
     return(model_svm)
   }
   
+  if (type == 'pcr'& HPT == 'no'){
+    
+  # 3. Principle component regression
+  
+  # Define grid for HPT
+  Grid_pcr  <- expand.grid(ncomp = seq(1:10))
+  
+  # Perform HPT
+  model_pcr <- train(formula,
+                     data,
+                     preProcess = preprocessing,
+                     method = 'pcr',
+                     trControl = myControl,
+                     importance = 'permutation',
+                     na.action = na.pass,
+                     metric = 'RMSE')
+  
+  return(model_pcr)
+}
+
 
 }
