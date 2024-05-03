@@ -9,6 +9,7 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT, CV) {
   formula <- as.formula(paste0(target,'~.'))
   
   # perform pre processing here
+  preprocessing <- c('center','scale','medianImpute')
   
   # preproc <- preProcess(as.data.frame(data),method = 'knnImpute')
   # data    <- predict(preproc,data)
