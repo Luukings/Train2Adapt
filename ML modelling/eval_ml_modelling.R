@@ -1,4 +1,4 @@
-eval_ml_modelling <- function(model, data, target, plot=FALSE) {
+eval_ml_modelling <- function(model, data, target, plot=FALSE, header = '') {
   
   # Input:   model, test data set, target column and whether to plot the results
   # Process: Predict model outcome and calculate R^2and RMSE 
@@ -28,7 +28,7 @@ eval_ml_modelling <- function(model, data, target, plot=FALSE) {
   
   # when result plot is desired a plot will be shown
   if (plot == TRUE){
-    plot <- ggplot(df,aes(measured,predicted))+geom_point()+geom_abline(slope=1,intercept=0)
+    plot <- ggplot(df,aes(predicted, measured))+geom_point()+geom_abline(slope=1,intercept=0) + theme_light() + ggtitle(header)
     print(plot)
   }
   

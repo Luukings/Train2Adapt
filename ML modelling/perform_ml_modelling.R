@@ -15,14 +15,16 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT, CV) {
   # data    <- predict(preproc,data)
   
   if (filtering == 'yes'){
+    print(ncol(data)-1)
     data_tmp       <- data[target]
     descrCor       <- cor(data%>%select(where(is.numeric),-target),use = 'complete.obs')
     # descrCor       <- descrCor[rowSums(is.na(descrCor)) == 1,]
     highlyCorDescr <- findCorrelation(descrCor, cutoff = .7)
     names          <- colnames(data%>%select(where(is.numeric)))[-(highlyCorDescr+1)]
     data           <- data[,names]
-    data[target]   <- data_tmp
+    print(ncol(data))
     
+    data[target]   <- data_tmp
   } 
   if ( CV == 'yes'){
     myControl  <- trainControl(method = "LOOCV",verboseIter = F)
