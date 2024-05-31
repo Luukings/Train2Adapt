@@ -298,8 +298,24 @@
     imp  <- left_join(imp,corr) %>% mutate(corr_sign = factor(case_when(abs(corr)<=.05 ~'±',corr < .05 ~'-',corr > .05 ~'+'),levels=c('-','±','+')))
     
     # Plot feature importance scores
-    plot_feature_importance(imp,predict_target)
+    if (predict_target == 'pre') {
+      A <-  plot_feature_importance(imp,predict_target)
+    } else if (predict_target == 'post') {
+      B <-  plot_feature_importance(imp,predict_target)
+    } else if (predict_target == 'delta') {
+      C <-  plot_feature_importance(imp,predict_target)
+    }
     
+    png(paste0("./Figure3_",format(Sys.Date(),"%d%m%y"),".png"),
+         bg = "transparent", width = 12, height = 6, unit = "in", pointsize = 10, res = 1200)
+    
+    graphic <- ggarrange(A, B, C,
+                         labels = c("A","B","C"),
+                         ncol = 3, nrow = 1,
+                         align = "v")
+    print({graphic})
+    
+    dev.off()
     
     # Plot individual training response
     load("diff_TT_performance.RData")
@@ -307,3 +323,11 @@
 
     
 # ------------------------------------------- end of script ----------------------------------------
+    
+    # 
+    # # Plot predictions vs actual scores
+    # eval_ml_modelling(eval(as.name(best_model$rowname)),data_test,target,plot = T, 
+    #                   header = case_when(predict_target=='delta' ~ 'C) Predicted vs actual values for changes in TT performance',
+    #                                      predict_target=='post'  ~ 'B) Predicted vs actual values for TT performance after training',
+    #                                      predict_target=='pre'   ~ 'A) Predicted vs actual values for TT performance at baseline'))
+    

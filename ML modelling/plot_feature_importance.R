@@ -10,11 +10,13 @@ ggplot2::ggplot(imp, aes(x=reorder(rowname,feature_imp), y=feature_imp)) +
                 color='black', linewidth = .5) +
   geom_point(color = "skyblue", size=3)+
   #scale_color_manual(values =cbbPalette)+
-  xlab('Variable')+
+  xlab(case_when(predict_target=='delta' ~ '',
+                 predict_target=='post'  ~ '',
+                 predict_target=='pre'   ~ 'Predictors'))+
   ylab('Feature Importance')+
-  ggtitle(case_when(predict_target=='delta' ~ 'C) Critical determinants for changes in TT performance',
-                    predict_target=='post'  ~ 'B) Critical determinants for TT performance after training',
-                    predict_target=='pre'   ~ 'A) Critical determinants for TT performance at baseline')) +
+  ggtitle(case_when(predict_target=='delta' ~ 'C) Changes in performance',
+                    predict_target=='post'  ~ 'B) Performance after training',
+                    predict_target=='pre'   ~ 'A) Performance at baseline')) +
   theme_light() +
   coord_flip() + 
   theme(plot.title.position = "plot")
