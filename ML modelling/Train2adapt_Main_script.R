@@ -324,10 +324,3 @@
     
 # ------------------------------------------- end of script ----------------------------------------
     
-    # 
-    # # Plot predictions vs actual scores
-    # eval_ml_modelling(eval(as.name(best_model$rowname)),data_test,target,plot = T, 
-    #                   header = case_when(predict_target=='delta' ~ 'C) Predicted vs actual values for changes in TT performance',
-    #                                      predict_target=='post'  ~ 'B) Predicted vs actual values for TT performance after training',
-    #                                      predict_target=='pre'   ~ 'A) Predicted vs actual values for TT performance at baseline'))
-    
