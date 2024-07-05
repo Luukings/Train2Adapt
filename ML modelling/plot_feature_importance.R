@@ -17,8 +17,9 @@ ggplot2::ggplot(imp, aes(x=reorder(rowname,feature_imp), y=feature_imp)) +
   ggtitle(case_when(predict_target=='delta' ~ 'C) Changes in performance',
                     predict_target=='post'  ~ 'B) Performance after training',
                     predict_target=='pre'   ~ 'A) Performance at baseline')) +
-  theme_light() +
+  scale_y_continuous(n.breaks = 4) +
+  theme_classic() +
   coord_flip() + 
-  theme(plot.title.position = "plot")
+  theme(plot.title.position = "plot") 
 
 }
