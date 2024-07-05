@@ -39,7 +39,8 @@
     source('ML modelling/eval_ml_modelling.R')
     source('ML modelling/plot_feature_importance.R')
     source('ML modelling/plot_individual_resp.R')
-
+    source('ML modelling/rename_columns.R')
+    
 # ------------------------------------------------------
 # Data loading
 # ------------------------------------------------------  
@@ -47,7 +48,7 @@
     setwd("Get ML dataframe") # set wd where data is stored
     
     # Select model target
-    predict_target <- 'pre'
+    predict_target <- 'post'
     
     # Load relevant dataframe correspoding to target
     if (predict_target == 'pre') {
@@ -79,19 +80,8 @@
                      rename_at(.vars = vars(any_of(c("Training_data","Daily questionare","Weekly questionare","Training log"))),
                                .funs = ~paste0('compl_',.)) %>%
                      rename(sex = gender) %>%
-                     rename(Performance_VO2 = TT_VO2_mean,
-                            Gross_efficiency = TT_eff,
-                            VO2kinetics_MRT = MRT,
-                            VO2kinetics_tau = tau,
-                            VO2kinetics_base = base,
-                            VO2kinetics_delay = time_delay,
-                            VO2kinetics_amplitude = amplitude,
-                            VL_ACSAmax = max_ACSA,
-                            VL_Volume = Volume,
-                            VL_Lm = Mean_Lm1,
-                            VL_Lf = mean_Fascicle_length,
-                            VL_PA = mean_Pennation_Angle) %>%
                      mutate(sex = ifelse(sex==0,'female','male')) 
+    data  <- rename_columns(data)
     data  <- dummy_cols(data,select_columns='sex',remove_first_dummy = T,remove_selected_columns = T) # create dummy cols based on 'Groep' column
     
     # Perform normalization to body weight for pre and post predictions
@@ -307,7 +297,7 @@
     }
     
     png(paste0("./Figure3_",format(Sys.Date(),"%d%m%y"),".png"),
-         bg = "transparent", width = 12, height = 6, unit = "in", pointsize = 10, res = 1200)
+         bg = "transparent", width = 12, height = 6, unit = "in", pointsize = 11, res = 1200)
     
     graphic <- ggarrange(A, B, C,
                          labels = c("A","B","C"),
