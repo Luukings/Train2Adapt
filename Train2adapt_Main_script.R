@@ -35,17 +35,17 @@
 # Load helper scripts
 # ------------------------------------------------------ 
 
-    source('ML modelling/perform_ml_modelling.R')
-    source('ML modelling/eval_ml_modelling.R')
-    source('ML modelling/plot_feature_importance.R')
-    source('ML modelling/plot_individual_resp.R')
-    source('ML modelling/rename_columns.R')
+    source('scripts/perform_ml_modelling.R')
+    source('scripts/eval_ml_modelling.R')
+    source('scripts/plot_feature_importance.R')
+    source('scripts/plot_individual_resp.R')
+    source('scripts/rename_columns.R')
     
 # ------------------------------------------------------
 # Data loading
 # ------------------------------------------------------  
 
-    setwd("Get ML dataframe") # set wd where data is stored
+    setwd("data") # set wd where data is stored
     
     # Select model target
     predict_target <- 'post'
