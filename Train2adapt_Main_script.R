@@ -48,7 +48,7 @@
     setwd("data") # set wd where data is stored
     
     # Select model target
-    predict_target <- 'post'
+    predict_target <- 'pre'
     
     # Load relevant dataframe correspoding to target
     if (predict_target == 'pre') {
@@ -116,9 +116,9 @@
 
     # Data partitioning: split data into train set and holdout test set
     if (predict_target %in% c('pre','post')) {
-      set.seed(123)
+      set.seed(123, kind = 'Mersenne-Twister', normal.kind = 'Inversion')
     } else {
-      set.seed(321)   # to obtain similar train-test distribution
+      set.seed(321, kind = 'Mersenne-Twister', normal.kind = 'Inversion')   # to obtain similar train-test distribution
     }
     # set.seed(321)
     trainIndex      <- createDataPartition(data$TT_power, times=1, p = .65, list=F)
@@ -253,17 +253,17 @@
     #predict_target = 'pre'
     if (predict_target == 'pre') {
       
-      set.seed(123)
+      set.seed(123, kind = 'Mersenne-Twister', normal.kind = 'Inversion')
       best_model  <- best_model_pre
       
     } else if (predict_target == 'post') {
       
-      set.seed(123)
+      set.seed(123, kind = 'Mersenne-Twister', normal.kind = 'Inversion')
       best_model  <- best_model_post
       
     } else if (predict_target == 'delta') {
     
-      set.seed(321)
+      set.seed(321, kind = 'Mersenne-Twister', normal.kind = 'Inversion')
       best_model  <- best_model_diff
     }
     # Determine feature importance based on entire dataset
