@@ -1,0 +1,52 @@
+R version 4.3.2 (2023-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Monterey 12.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Amsterdam
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] missMethods_0.4.0 pbapply_1.7-2     missRanger_2.4.0  kernlab_0.9-32    DiagrammeR_1.0.11
+ [6] FactoMineR_2.9    visdat_0.6.0      ggpattern_1.0.1   gridExtra_2.3     ggpubr_0.6.0     
+[11] glmnet_4.1-8      Matrix_1.6-1.1    MLeval_0.3        MLmetrics_1.1.1   ranger_0.16.0    
+[16] caret_6.0-94      lattice_0.21-9    fastDummies_1.7.3 lubridate_1.9.3   forcats_1.0.0    
+[21] stringr_1.5.1     readr_2.1.4       tibble_3.2.1      ggplot2_3.4.4     tidyverse_2.0.0  
+[26] purrr_1.0.2       officer_0.6.5     tidyr_1.3.0       dplyr_1.1.4       readxl_1.4.3     
+
+loaded via a namespace (and not attached):
+  [1] RColorBrewer_1.1-3   rstudioapi_0.15.0    jsonlite_1.8.7       shape_1.4.6         
+  [5] magrittr_2.0.3       TH.data_1.1-2        estimability_1.4.1   farver_2.1.1        
+  [9] ragg_1.2.6           vctrs_0.6.4          askpass_1.2.0        rstatix_0.7.2       
+ [13] htmltools_0.5.7      broom_1.0.5          cellranger_1.1.0     pROC_1.18.5         
+ [17] parallelly_1.36.0    htmlwidgets_1.6.3    plyr_1.8.9           sandwich_3.1-0      
+ [21] emmeans_1.10.0       zoo_1.8-12           uuid_1.1-1           lifecycle_1.0.4     
+ [25] iterators_1.0.14     pkgconfig_2.0.3      R6_2.5.1             fastmap_1.1.1       
+ [29] future_1.33.0        digest_0.6.33        colorspace_2.1-0     textshaping_0.3.7   
+ [33] labeling_0.4.3       fansi_1.0.5          timechange_0.2.0     abind_1.4-5         
+ [37] compiler_4.3.2       proxy_0.4-27         withr_2.5.2          backports_1.4.1     
+ [41] carData_3.0-5        ggsignif_0.6.4       MASS_7.3-60          lava_1.7.3          
+ [45] openssl_2.1.1        scatterplot3d_0.3-44 flashClust_1.01-2    ModelMetrics_1.2.2.2
+ [49] tools_4.3.2          zip_2.3.0            future.apply_1.11.0  nnet_7.3-19         
+ [53] glue_1.6.2           nlme_3.1-163         grid_4.3.2           cluster_2.1.4       
+ [57] reshape2_1.4.4       generics_0.1.3       recipes_1.0.8        gtable_0.3.4        
+ [61] tzdb_0.4.0           class_7.3-22         data.table_1.14.8    hms_1.1.3           
+ [65] xml2_1.3.5           car_3.1-2            utf8_1.2.4           ggrepel_0.9.4       
+ [69] foreach_1.5.2        pillar_1.9.0         splines_4.3.2        survival_3.5-7      
+ [73] tidyselect_1.2.0     stats4_4.3.2         pls_2.8-3            hardhat_1.3.0       
+ [77] timeDate_4022.108    DT_0.31              visNetwork_2.1.2     stringi_1.8.2       
+ [81] codetools_0.2-19     multcompView_0.1-9   cli_3.6.1            rpart_4.1.21        
+ [85] xtable_1.8-4         systemfonts_1.0.5    munsell_0.5.0        Rcpp_1.0.11         
+ [89] globals_0.16.2       parallel_4.3.2       leaps_3.1            gower_1.0.1         
+ [93] listenv_0.9.0        mvtnorm_1.2-4        ipred_0.9-14         e1071_1.7-13        
+ [97] scales_1.3.0         prodlim_2023.08.28   crayon_1.5.2         rlang_1.1.2         
+[101] multcomp_1.4-25  
