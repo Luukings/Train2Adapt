@@ -22,7 +22,7 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT, CV) {
     highlyCorDescr <- findCorrelation(descrCor, cutoff = .7)
     names          <- colnames(data%>%select(where(is.numeric)))[-(highlyCorDescr+1)]
     data           <- data[,names]
-    print(ncol(data))
+    #print(ncol(data))
     
     data[target]   <- data_tmp
   } 
