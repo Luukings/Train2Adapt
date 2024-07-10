@@ -93,29 +93,7 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT, CV) {
       
       return(model_rf)
       
-    } else if (type == 'svm'){
-      
-      # 3. SVM
-      
-      # Define grid for HPT
-      Grid_svm  <- expand.grid(sigma = seq(0.00001,0.02,0.0005),
-                               C = seq(0.001,10,.25))
-      
-      # Perform HPT
-      model_svm <- train(formula,
-                        data,
-                        preProcess = preprocessing,
-                        method = 'svmRadialSigma',
-                        trControl = myControl,
-                        #tuneGrid = Grid_svm,
-                        tuneLength = 10,
-                        importance = 'permutation',
-                        na.action = na.pass,
-                        metric = 'RMSE')
-
-      return(model_svm)
-
-    } else if (type == 'pcr'){
+    }else if (type == 'pcr'){
     
     # 3. Principle component regression
     
@@ -173,22 +151,6 @@ perform_ml_modelling <- function(data, target, type, filtering, HPT, CV) {
                       na.action = na.pass,
                       metric = 'RMSE')
     return(model_rf)
-  }
-  
-  if (type == 'svm'& HPT == 'no'){
-    # 3. SVM
-
-    # Fit final model
-    model_svm <- train(formula,
-                       data,
-                       preProcess = preprocessing,
-                       method = 'svmRadialSigma',
-                       trControl = myControl,
-                       importance = 'permutation',
-                       na.action = na.pass,
-                       metric = 'RMSE')
-    
-    return(model_svm)
   }
   
   if (type == 'pcr'& HPT == 'no'){
