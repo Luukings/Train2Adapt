@@ -50,7 +50,7 @@
     setwd("data") # set wd where data is stored
     
     # Select model target
-    predict_target <- 'pre'
+    predict_target <- 'post'
     
     # Load relevant dataframe correspoding to target
     if (predict_target == 'pre') {
@@ -364,13 +364,6 @@
       set.seed(19, kind = 'Mersenne-Twister', normal.kind = 'Inversion')
       best_model  <- best_repeated_model_diff
     }
-
-    # Determine tune settings (on entire dataset)
-    if (best_model$tuning == 'x') {
-      best_model_tune  <- perform_ml_modelling(data_full,target,best_model$algorithm,
-                                               filtering =ifelse(best_model$filter == 'x','yes','no'),
-                                               HPT='yes',CV='kfold')
-    }
     
     # Determine feature importance (on entire dataset)
     model     <- train(formula,
@@ -380,7 +373,6 @@
                                           str_detect(best_model$rowname,'_glm_') ~ "glmnet",
                                           str_detect(best_model$rowname,'_pcr_') ~ "pcr"),
                        trControl = trainControl(method = "none",verboseIter = F),
-                       tuneGrid = ifelse(best_model$tuning == 'x',best_model_tune$bestTune, NULL),
                        importance = 'permutation',
                        na.action = na.pass,
                        metric = 'RMSE')
