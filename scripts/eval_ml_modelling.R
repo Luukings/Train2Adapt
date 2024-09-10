@@ -1,4 +1,4 @@
-eval_ml_modelling <- function(model, data, target, plot=FALSE, header = '') {
+eval_ml_modelling <- function(model, data, target, plot=FALSE, header = '', return_df_pred = FALSE) {
   
   # Input:   model, test data set, target column and whether to plot the results
   # Process: Predict model outcome and calculate R^2and RMSE 
@@ -14,7 +14,7 @@ eval_ml_modelling <- function(model, data, target, plot=FALSE, header = '') {
   
   # try with postResample function
   pred_outcome <- postResample(pred = predicted, obs = measured)
-  
+
   df <- data.frame(measured,predicted)
   
   error <- measured - predicted # calculate error
@@ -24,7 +24,10 @@ eval_ml_modelling <- function(model, data, target, plot=FALSE, header = '') {
   R_sq <- 1-SSE/SST
   RMSE <- sqrt(mean(error^2))
   
-  model_results <- pred_outcome
+  model_results <- data.frame(RMSE = pred_outcome['RMSE'],
+                              Rsquared = pred_outcome['Rsquared'],
+                              MAE = pred_outcome['MAE'])
+  model_results <- model_results %>% mutate(Rsquared = ifelse(is.na(Rsquared),R_sq, Rsquared))
   
   # when result plot is desired a plot will be shown
   if (plot == TRUE){
@@ -32,7 +35,11 @@ eval_ml_modelling <- function(model, data, target, plot=FALSE, header = '') {
     print(plot)
   }
   
-  return(model_results)
+  if (return_df_pred == TRUE) {
+    return(df)
+  } else {
+    return(model_results)
+  }
   
   
    
