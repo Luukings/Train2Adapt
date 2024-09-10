@@ -50,7 +50,7 @@
     setwd("data") # set wd where data is stored
     
     # Select model target
-    predict_target <- 'delta'
+    predict_target <- 'pre'
     
     # Load relevant dataframe correspoding to target
     if (predict_target == 'pre') {
@@ -110,7 +110,7 @@
     
     # Remove variables related to weight as this is used as denominator in the target 
     data <- data %>% select(-contains('weight'),-code)
-    
+    data_full <- data
 
 # ------------------------------------------------------
 # Data partitioning
@@ -364,17 +364,23 @@
       set.seed(19, kind = 'Mersenne-Twister', normal.kind = 'Inversion')
       best_model  <- best_repeated_model_diff
     }
+
+    # Determine tune settings (on entire dataset)
+    if (best_model$tuning == 'x') {
+      best_model_tune  <- perform_ml_modelling(data_full,target,best_model$algorithm,
+                                               filtering =ifelse(best_model$filter == 'x','yes','no'),
+                                               HPT='yes',CV='kfold')
+    }
     
     # Determine feature importance (on entire dataset)
-    myControl <- trainControl(method = "none",verboseIter = F)
     model     <- train(formula,
-                       data,
+                       data_full,
                        preProcess = c('center','scale','medianImpute'),
                        method = case_when(str_detect(best_model$rowname,'_rf_')  ~ "ranger",
                                           str_detect(best_model$rowname,'_glm_') ~ "glmnet",
                                           str_detect(best_model$rowname,'_pcr_') ~ "pcr"),
-                       trControl = myControl,
-                       tuneGrid = eval(as.name(best_model$rowname))$bestTune,
+                       trControl = trainControl(method = "none",verboseIter = F),
+                       tuneGrid = ifelse(best_model$tuning == 'x',best_model_tune$bestTune, NULL),
                        importance = 'permutation',
                        na.action = na.pass,
                        metric = 'RMSE')
