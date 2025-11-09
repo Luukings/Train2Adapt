@@ -28,8 +28,8 @@ The main script is used to perform ML modelling. note that the main script can b
  **Version:**        1.0                                                                                                        
  **R.version:**      4.2.2 (2022-11-01)                                                                                        
                                                                                                                           
- **Publication:**         
- doi:                        
+ **Publication:**   Vos et al. 2025. Predicting Cycling Performance Before and After Training: Insights From Machine Learning Using Small Samples      
+ doi: [10.1080/08839514.2025.2565167](https://doi.org/10.1080/08839514.2025.2565167)                       
  <hr>      
  
 <h4> RStudio project </h4>
